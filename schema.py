@@ -4,6 +4,7 @@ from datetime import datetime
 
 class HaikuPost(BaseModel):
     haiku: str
+    password: str
 
 
 class Haiku(BaseModel):

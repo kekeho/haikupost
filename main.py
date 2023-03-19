@@ -1,15 +1,20 @@
 import fastapi
 from fastapi import HTTPException
 import db
-import os
 import schema
+import bcrypt
+import json
 from sqlalchemy.orm import sessionmaker
 from typing import List
 
 
-# HASHED_PASSWORD = os.getenv('HAIKU_HASHED_PASSWORD')
-# if HASHED_PASSWORD is None:
-#     raise ValueError('HAIKU_HASHED_PASSWORD not found in os environment')
+with open("config.json") as f:
+    j = json.load(f)
+
+    hp = j.get("password")
+    if hp is None:
+        raise ValueError('HAIKU_HASHED_PASSWORD not found in os environment')
+    HASHED_PASSWORD = hp.encode()
 
 app = fastapi.FastAPI()
 
@@ -34,11 +39,20 @@ def get(offset: int = 0, limit: int = 50) -> List[schema.Haiku]:
 
 
 @app.post('/post')
-def post(haiku: schema.HaikuPost):
+def post(haikupost: schema.HaikuPost):
+    passcheck = bcrypt.checkpw(
+        password=haikupost.password.encode(),
+        hashed_password=HASHED_PASSWORD
+    )
+    if passcheck is False:
+        raise HTTPException(
+            status_code=401,
+            detail="Password check is failed."
+        )
     # TODO: password auth
     s = sessionmaker(bind=db.db_engine)()
     h = db.Haiku()
-    h.content = haiku.haiku
+    h.content = haikupost.haiku
     s.add(h)
     s.commit()
 
